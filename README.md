@@ -1,92 +1,79 @@
 # Kryve Studio — GitHub API
 
-PHP wrapper untuk GitHub REST API oleh Kryve Studio.
+PHP wrapper untuk GitHub REST API. Simple, dependency-free, built dengan cURL.
 
-## Instalasi
+📖 **[Full Documentation](https://kryvestudio.github.io/github-api/)** — Lengkap dengan authentication methods, API reference, error handling, dan testing guide.
+
+---
+
+## Quick Start
+
+### Instalasi
 
 ```bash
 composer require kryvestudio/github-api
 ```
 
-## Persiapan Token
+**Requirements:** PHP 8.3+, ext-curl, ext-json
 
-1. Buka https://github.com/settings/tokens
-2. Klik **Generate new token** → pilih scopes sesuai kebutuhan (minimal `public_repo`)
-3. Copy token, lalu set ke environment variable:
+### Basic Usage
 
-```bash
-set GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+```php
+<?php
+require __DIR__ . '/vendor/autoload.php';
+
+use Kryve\GithubApi\Client;
+use Kryve\GithubApi\Api\User;
+use Kryve\GithubApi\Api\Repos;
+
+// Setup client (dengan token atau tanpa token untuk public endpoints)
+$client = new Client(getenv('GITHUB_TOKEN') ?: null);
+
+// Fetch user profile
+$user = new User($client);
+$profile = $user->get('kryvestudio');
+echo "Bio: {$profile['bio']}\n";
+
+// List repositories
+$repos = new Repos($client);
+$list = $repos->forUser('kryvestudio', ['per_page' => 5]);
+foreach ($list as $repo) {
+    echo "- {$repo['name']} ⭐ {$repo['stargazers_count']}\n";
+}
 ```
 
-Atau bisa langsung passing ke constructor tanpa env:
+### Token Setup
 
+1. Generate token di [github.com/settings/tokens](https://github.com/settings/tokens)
+2. Set environment variable:
+   ```bash
+   export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+   ```
+
+Atau pass langsung ke constructor:
 ```php
 $client = new Client('ghp_xxxxxxxxxxxxxxxxxxxx');
 ```
 
-## Authentikasi
+---
 
-| Cara | Constructor | Keterangan |
-|------|-------------|------------|
-| **Bearer token** (default) | `new Client($token)` | Pake token doang — **recommended** |
-| **Basic Auth** | `new Client($token, $baseUrl, $username)` | Buat legacy / account-level auth |
-| **No auth (public)** | `new Client()` | Hanya bisa akses endpoint publik |
+## API yang Tersedia
 
-Basic Auth:
-```php
-$client = new Client('ghp_xxx', 'https://api.github.com', 'kryvestudio');
-```
+| Class | Method | Endpoint |
+|-------|--------|----------|
+| **Client** | `get($endpoint, $params)` | Generic GET request |
+| **User** | `get($username)` | `GET /users/:username` |
+| **Repos** | `forUser($username, $params)` | `GET /users/:username/repos` |
+| | `forOrg($org, $params)` | `GET /orgs/:org/repos` |
+| **Issues** | `list($owner, $repo, $params)` | `GET /repos/:owner/:repo/issues` |
 
-## API Reference
+Query parameters opsional—cek [docs](https://kryvestudio.github.io/github-api/#repos) untuk detail.
 
-### `Client`
-
-Inti dari library. Handle HTTP request ke GitHub API via cURL.
-
-Method:
-```
-__construct(?string $token, string $baseUrl, ?string $username)
-get(string $endpoint, array $params) : array
-```
-
-Contoh:
-```php
-$client = new Client(getenv('GITHUB_TOKEN') ?: null);
-$result = $client->get('/users/kryvestudio');
-$repos = $client->get('/users/kryvestudio/repos');
-```
-
-### `User`
-
-Bungkus endpoint `/users/:username`.
-
-```php
-$user = new User($client);
-$data = $user->get('kryvestudio');
-```
-
-### `Repos`
-
-Bungkus endpoint `/orgs/:org/repos` dan `/users/:username/repos`.
-
-```php
-$repos = new Repos($client);
-$list = $repos->forUser('kryvestudio');
-$list = $repos->forOrg('google', ['sort' => 'stars']);
-```
-
-### `Issues`
-
-Bungkus endpoint `/repos/:owner/:repo/issues`.
-
-```php
-$issues = new Issues($client);
-$list = $issues->list('laravel', 'laravel');
-```
+---
 
 ## Error Handling
 
-Semua error (4xx, 5xx, cURL error) dilempar sebagai `ApiException`:
+Semua error (4xx, 5xx, cURL errors) dilempar sebagai `ApiException`:
 
 ```php
 use Kryve\GithubApi\Exception\ApiException;
@@ -96,118 +83,52 @@ try {
 } catch (ApiException $e) {
     echo $e->getMessage();        // "Not Found"
     echo $e->getCode();           // 404
-    print_r($e->getResponseBody());// Array dari GitHub { message, documentation_url, ... }
+    print_r($e->getResponseBody()); // Full GitHub error response
 }
 ```
 
-## Contoh dengan HTML
+---
 
-### Card Profil User
+## Use Cases
 
+**Portfolio Integration**
 ```php
-<?php
-require __DIR__ . '/vendor/autoload.php';
-
-use Kryve\GithubApi\Client;
-use Kryve\GithubApi\Api\User;
-
-$client = new Client(getenv('GITHUB_TOKEN') ?: null);
-$user = new User($client);
-$data = $user->get('kryvestudio');
-?>
-<!DOCTYPE html>
-<html>
-<body>
-    <div style="border:1px solid #ddd;padding:20px;max-width:400px;border-radius:8px;">
-        <img src="<?= $data['avatar_url'] ?>" width="80" style="border-radius:50%;">
-        <h2><?= $data['name'] ?? $data['login'] ?></h2>
-        <p><?= $data['bio'] ?? '-' ?></p>
-        <p>
-            📍 <?= $data['location'] ?? '-' ?> |
-            🏢 <?= $data['company'] ?? '-' ?>
-        </p>
-        <p>
-            Repos: <?= $data['public_repos'] ?> |
-            Followers: <?= $data['followers'] ?> |
-            Following: <?= $data['following'] ?>
-        </p>
-    </div>
-</body>
-</html>
+// Auto-update stats di landing page
+$profile = $user->get('your-username');
+echo "Total repos: {$profile['public_repos']}";
+echo "Followers: {$profile['followers']}";
 ```
 
-### Daftar Repository
-
+**Repo Showcase**
 ```php
-<?php
-require __DIR__ . '/vendor/autoload.php';
-
-use Kryve\GithubApi\Client;
-use Kryve\GithubApi\Api\Repos;
-
-$client = new Client(getenv('GITHUB_TOKEN') ?: null);
-$repos = new Repos($client);
-$list = $repos->forUser('kryvestudio');
-?>
-<!DOCTYPE html>
-<html>
-<body>
-    <h2>Repositories</h2>
-    <ul>
-    <?php foreach ($list as $repo): ?>
-        <li>
-            <strong><?= $repo['name'] ?></strong>
-            <?php if ($repo['description']): ?>
-                <br><small><?= $repo['description'] ?></small>
-            <?php endif; ?>
-            <br>
-            ⭐ <?= $repo['stargazers_count'] ?> |
-            🍴 <?= $repo['forks_count'] ?> |
-            🐛 <?= $repo['open_issues_count'] ?>
-            <br>
-            <a href="<?= $repo['html_url'] ?>">Lihat</a>
-        </li>
-        <hr>
-    <?php endforeach; ?>
-    </ul>
-</body>
-</html>
+// List project highlights dengan metadata real-time
+$repos = $repos->forUser('your-username', [
+    'sort' => 'updated',
+    'per_page' => 10
+]);
+// Display dengan stars, forks, language
 ```
 
-### Daftar Issues
-
+**Issue Tracker Dashboard**
 ```php
-<?php
-require __DIR__ . '/vendor/autoload.php';
-
-use Kryve\GithubApi\Client;
-use Kryve\GithubApi\Api\Issues;
-
-$client = new Client(getenv('GITHUB_TOKEN') ?: null);
+// Monitor open issues across projects
 $issues = new Issues($client);
-$list = $issues->list('laravel', 'laravel', ['per_page' => 5]);
-?>
-<!DOCTYPE html>
-<html>
-<body>
-    <h2>Open Issues (terbaru)</h2>
-    <?php foreach ($list as $issue): ?>
-        <div style="border:1px solid #eee;padding:10px;margin-bottom:10px;">
-            <strong>
-                <a href="<?= $issue['html_url'] ?>">
-                    #<?= $issue['number'] ?> — <?= $issue['title'] ?>
-                </a>
-            </strong>
-            <p>👤 <?= $issue['user']['login'] ?> |
-               🏷️ <?= implode(', ', array_column($issue['labels'], 'name')) ?> |
-               💬 <?= $issue['comments'] ?>
-            </p>
-            <p><?= date('d M Y', strtotime($issue['created_at'])) ?></p>
-        </div>
-    <?php endforeach; ?>
-</body>
-</html>
+$openIssues = $issues->list('owner', 'repo', ['state' => 'open']);
 ```
+
+---
+
+## Documentation
+
+📚 **[Baca dokumentasi lengkap](https://kryvestudio.github.io/github-api/)** untuk:
+
+- **Authentication methods** (Bearer Token, Basic Auth, No Auth)
+- **Complete API reference** dengan semua parameters
+- **Advanced error handling** patterns
+- **Testing guide** dengan PHPUnit
+- **Real-world HTML examples** (profile card, repo list, issue tracker)
+
+---
 
 ## Testing
 
@@ -215,22 +136,39 @@ $list = $issues->list('laravel', 'laravel', ['per_page' => 5]);
 composer test
 ```
 
-## Struktur Folder
-
-```
-├── src/
-│   ├── Client.php          # HTTP client (cURL wrapper)
-│   ├── Api/
-│   │   ├── User.php        # GET /users/:username
-│   │   ├── Repos.php       # GET /orgs/:org/repos, /users/:username/repos
-│   │   └── Issues.php      # GET /repos/:owner/:repo/issues
-│   └── Exception/
-│       └── ApiException.php
-├── tests/
-│   └── ClientTest.php
-├── .env.example
-├── .gitignore
-├── composer.json
-└── README.md
+Atau langsung:
+```bash
+vendor/bin/phpunit
 ```
 
+---
+
+## Project Structure
+
+```
+src/
+├── Client.php           # HTTP client core (cURL wrapper)
+├── Api/
+│   ├── User.php        # User endpoints
+│   ├── Repos.php       # Repository endpoints
+│   └── Issues.php      # Issues endpoints
+└── Exception/
+    └── ApiException.php
+```
+
+---
+
+## License
+
+MIT License - Kryve Studio
+
+**Made with** ☕ **by** [Kryve Studio](https://github.com/kryvestudio)
+
+---
+
+## Links
+
+- 📖 [Full Documentation](https://kryvestudio.github.io/github-api/)
+- 📦 [Packagist](https://packagist.org/packages/kryvestudio/github-api)
+- 🐙 [GitHub Repository](https://github.com/kryvestudio/github-api)
+- 🔑 [Generate GitHub Token](https://github.com/settings/tokens)
