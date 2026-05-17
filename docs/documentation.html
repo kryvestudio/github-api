@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kryve Studio | GitHub API Documentation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.7; color: #1f2937; background: #f9fafb; }
+        nav { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: #111827; color: #d1d5db; padding: 2rem 1.5rem; overflow-y: auto; }
+        nav h2 { color: #fff; font-size: 1rem; margin-bottom: 1.5rem; letter-spacing: 0.05em; text-transform: uppercase; }
+        nav a { display: block; color: #9ca3af; text-decoration: none; padding: 0.4rem 0; font-size: 0.9rem; transition: color 0.15s; }
+        nav a:hover, nav a.active { color: #fff; }
+        nav .sub { padding-left: 1rem; font-size: 0.85rem; }
+        main { margin-left: 260px; max-width: 860px; padding: 3rem 3rem 6rem; }
+        h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 0.5rem; color: #111827; }
+        h1 small { display: block; font-size: 1rem; font-weight: 400; color: #6b7280; margin-top: 0.25rem; }
+        h2 { font-size: 1.5rem; font-weight: 700; margin-top: 3rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; color: #111827; }
+        h3 { font-size: 1.15rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: #1f2937; }
+        p { margin-bottom: 1rem; color: #374151; }
+        ul, ol { margin: 0.5rem 0 1rem 1.5rem; color: #374151; }
+        li { margin-bottom: 0.3rem; }
+        pre { background: #1e293b; color: #e2e8f0; padding: 1.25rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; line-height: 1.6; margin: 1rem 0; }
+        code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace; }
+        :not(pre) > code { background: #e5e7eb; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.85rem; color: #111827; }
+        table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+        th, td { text-align: left; padding: 0.6rem 0.8rem; border: 1px solid #d1d5db; font-size: 0.9rem; }
+        th { background: #f3f4f6; font-weight: 600; }
+        .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px; margin: 1rem 0; font-size: 0.9rem; }
+        .tip { background: #d1fae5; border-left: 4px solid #10b981; padding: 0.75rem 1rem; border-radius: 4px; margin: 1rem 0; font-size: 0.9rem; }
+        .warning { background: #fee2e2; border-left: 4px solid #ef4444; padding: 0.75rem 1rem; border-radius: 4px; margin: 1rem 0; font-size: 0.9rem; }
+        hr { border: none; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+        footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h2>Kryve GitHub API</h2>
+    <a href="#intro">Introduction</a>
+    <a href="#install">Installation</a>
+    <a href="#auth">Authentication</a>
+    <a href="#quickstart" class="sub">Quickstart</a>
+    <a href="#bearer" class="sub">Bearer Token</a>
+    <a href="#basic" class="sub">Basic Auth</a>
+    <a href="#noauth" class="sub">No Auth</a>
+    <a href="#client">Client</a>
+    <a href="#user" class="sub">User</a>
+    <a href="#repos" class="sub">Repos</a>
+    <a href="#issues" class="sub">Issues</a>
+    <a href="#error">Error Handling</a>
+    <a href="#testing">Testing</a>
+    <a href="#structure">Project Structure</a>
+</nav>
+
+<main>
+
+<h1>Kryve Studio - GitHub API <small>PHP wrapper untuk GitHub REST API</small></h1>
+
+<section id="intro">
+    <h2>Introduction</h2>
+    <p>
+        Library PHP sederhana untuk mengakses <a href="https://docs.github.com/en/rest">GitHub REST API</a>.
+        Dibangun dengan <strong>cURL</strong> dan <strong>JSON</strong>, tanpa dependensi HTTP library tambahan.
+        Setiap response dikembalikan sebagai <code>array</code> PHP.
+    </p>
+    <p>
+        Package ini dibuat oleh <strong>Kryve Studio</strong> dan dirilis sebagai open-source.
+    </p>
+</section>
+
+<hr>
+
+<section id="install">
+    <h2>Installation</h2>
+    <h3>Via Composer</h3>
+    <pre><code>composer require kryvestudio/github-api</code></pre>
+
+    <h3>Requirements</h3>
+    <ul>
+        <li>PHP 8.3+</li>
+        <li><code>ext-curl</code></li>
+        <li><code>ext-json</code></li>
+        <li>Composer (PSR-4 autoloading)</li>
+    </ul>
+</section>
+
+<hr>
+
+<section id="auth">
+    <h2>Authentication</h2>
+    <p>
+        GitHub API butuh token untuk sebagian besar endpoint (terutama yang private atau write).
+        Library ini support <strong>3 metode auth</strong>:
+    </p>
+    <table>
+        <thead>
+            <tr>
+                <th>Metode</th>
+                <th>Constructor</th>
+                <th>Kapan dipakai</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Bearer Token</strong></td>
+                <td><code>new Client($token)</code></td>
+                <td>Recommended: token doang, ga perlu username</td>
+            </tr>
+            <tr>
+                <td><strong>Basic Auth</strong></td>
+                <td><code>new Client($token, $baseUrl, $username)</code></td>
+                <td>Kalau API butuh username:password (legacy)</td>
+            </tr>
+            <tr>
+                <td><strong>No Auth</strong></td>
+                <td><code>new Client()</code></td>
+                <td>Public endpoints aja (rate limit lebih rendah)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tip">
+        <strong>Recommended:</strong> Gunakan Bearer Token. Buat token di
+        <a href="https://github.com/settings/tokens">github.com/settings/tokens</a>.
+    </div>
+</section>
+
+<hr>
+
+<section id="quickstart">
+    <h2>Quickstart</h2>
+    <p>Contoh paling sederhana: ambil data user publik tanpa token:</p>
+    <pre><code>&lt;?php
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Kryve\GithubApi\Client;
+
+$client = new Client();
+$user = $client->get('/users/kryvestudio');
+
+echo "Login: {$user['login']}\n";
+echo "Nama: " . ($user['name'] ?? '-') . "\n";
+echo "Bio: " . ($user['bio'] ?? '-') . "\n";
+</code></pre>
+</section>
+
+<section id="bearer">
+    <h3>Bearer Token</h3>
+    <p>Set token di environment variable <code>GITHUB_TOKEN</code>, lalu baca pake <code>getenv()</code>:</p>
+    <pre><code>&lt;?php
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Kryve\GithubApi\Client;
+use Kryve\GithubApi\Api\User;
+use Kryve\GithubApi\Api\Repos;
+
+$token = getenv('GITHUB_TOKEN') ?: null;
+$client = new Client($token);
+
+$user = new User($client);
+$data = $user->get('kryvestudio');
+echo "Bio: {$data['bio']}\n";
+
+$repos = new Repos($client);
+$list = $repos->forUser('kryvestudio');
+echo "Total repo: " . count($list) . "\n";
+</code></pre>
+</section>
+
+<section id="basic">
+    <h3>Basic Auth</h3>
+    <p>Kalau perlu Basic Auth (misal token + username), tinggal tambah parameter ketiga:</p>
+    <pre><code>&lt;?php
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Kryve\GithubApi\Client;
+
+$client = new Client(
+    token: 'ghp_xxxxx',
+    baseUrl: 'https://api.github.com',
+    username: 'kryvestudio'
+);
+
+$result = $client->get('/user');
+print_r($result);
+</code></pre>
+    <div class="note">
+        <strong>Catatan:</strong> GitHub udah deprecate password-based Basic Auth.
+        Pake Bearer Token aja kecuali ada alasan khusus.
+    </div>
+</section>
+
+<section id="noauth">
+    <h3>No Auth (Public)</h3>
+    <p>Tanpa token, cuma bisa akses endpoint publik. Rate limit lebih rendah (60 req/jam vs 5000 req/jam kalau pake token).</p>
+    <pre><code>&lt;?php
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Kryve\GithubApi\Client;
+
+$client = new Client();
+$user = $client->get('/users/kryvestudio');
+</code></pre>
+</section>
+
+<hr>
+
+<section id="client">
+    <h2>Client API Reference</h2>
+    <p><code>Kryve\GithubApi\Client</code> adalah class inti yang handle semua komunikasi HTTP via cURL.</p>
+
+    <h3><code>__construct(?string $token, string $baseUrl, ?string $username)</code></h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Default</th>
+                <th>Deskripsi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>$token</code></td>
+                <td><code>?string</code></td>
+                <td><code>null</code></td>
+                <td>GitHub personal access token</td>
+            </tr>
+            <tr>
+                <td><code>$baseUrl</code></td>
+                <td><code>string</code></td>
+                <td><code>'https://api.github.com'</code></td>
+                <td>Base URL API (ganti kalau pake GitHub Enterprise)</td>
+            </tr>
+            <tr>
+                <td><code>$username</code></td>
+                <td><code>?string</code></td>
+                <td><code>null</code></td>
+                <td>Username untuk Basic Auth (optional)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3><code>get(string $endpoint, array $params): array</code></h3>
+    <p>Kirim GET request ke endpoint GitHub API.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+                <th>Deskripsi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>$endpoint</code></td>
+                <td><code>string</code></td>
+                <td>Path endpoint, misal <code>'/users/kryvestudio'</code></td>
+            </tr>
+            <tr>
+                <td><code>$params</code></td>
+                <td><code>array</code></td>
+                <td>Query parameters (optional), misal <code>['per_page' => 100]</code></td>
+            </tr>
+        </tbody>
+    </table>
+    <p><strong>Return:</strong> <code>array</code> - response JSON yang sudah di-decode.</p>
+    <p><strong>Throws:</strong> <code>ApiException</code> kalau HTTP status &ge; 400 atau ada error cURL.</p>
+
+    <div class="tip">
+        <strong>Tips:</strong> Parameter query otomatis di-encode pake <code>http_build_query()</code>.
+        Contoh: <code>$client->get('/search/users', ['q' => 'kryve'])</code>.
+    </div>
+</section>
+
+<section id="user">
+    <h3>User API</h3>
+    <p><code>Kryve\GithubApi\Api\User</code></p>
+    <pre><code>&lt;?php
+
+use Kryve\GithubApi\Client;
+use Kryve\GithubApi\Api\User;
+
+$client = new Client(getenv('GITHUB_TOKEN') ?: null);
+$user = new User($client);
+
+// GET /users/:username
+$data = $user->get('kryvestudio');
+
+echo $data['login'];       // "kryvestudio"
+echo $data['name'];        // "Kryve Studio"
+echo $data['bio'];         // "Indie web dev studio..."
+echo $data['public_repos'];// 12
+echo $data['followers'];   // 5
+</code></pre>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Return</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>get(string $username)</code></td>
+                <td><code>GET /users/:username</code></td>
+                <td><code>array</code></td>
+            </tr>
+        </tbody>
+    </table>
+</section>
+
+<section id="repos">
+    <h3>Repos API</h3>
+    <p><code>Kryve\GithubApi\Api\Repos</code></p>
+    <pre><code>&lt;?php
+
+use Kryve\GithubApi\Client;
+use Kryve\GithubApi\Api\Repos;
+
+$client = new Client(getenv('GITHUB_TOKEN') ?: null);
+$repos = new Repos($client);
+
+// Repositori milik user
+$userRepos = $repos->forUser('kryvestudio');
+foreach ($userRepos as $repo) {
+    echo $repo['name'] . ' - ' . ($repo['description'] ?? '-') . "\n";
+}
+
+// Repositori milik organisasi
+$orgRepos = $repos->forOrg('laravel');
+echo "Total repo Laravel: " . count($orgRepos) . "\n";
+
+// Dengan query params
+$filtered = $repos->forUser('kryvestudio', ['type' => 'public', 'per_page' => 5]);
+</code></pre>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Return</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>forUser(string $username, array $params)</code></td>
+                <td><code>GET /users/:username/repos</code></td>
+                <td><code>array</code></td>
+            </tr>
+            <tr>
+                <td><code>forOrg(string $org, array $params)</code></td>
+                <td><code>GET /orgs/:org/repos</code></td>
+                <td><code>array</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>Parameter <code>$params</code> bisa diisi:</p>
+    <ul>
+        <li><code>type</code> - <code>all</code>, <code>public</code>, <code>private</code>, <code>forks</code>, <code>sources</code>, <code>member</code></li>
+        <li><code>sort</code> - <code>created</code>, <code>updated</code>, <code>pushed</code>, <code>full_name</code></li>
+        <li><code>direction</code> - <code>asc</code>, <code>desc</code></li>
+        <li><code>per_page</code> - max 100 (default 30)</li>
+        <li><code>page</code> - pagination</li>
+    </ul>
+</section>
+
+<section id="issues">
+    <h3>Issues API</h3>
+    <p><code>Kryve\GithubApi\Api\Issues</code></p>
+    <pre><code>&lt;?php
+
+use Kryve\GithubApi\Client;
+use Kryve\GithubApi\Api\Issues;
+
+$client = new Client(getenv('GITHUB_TOKEN') ?: null);
+$issues = new Issues($client);
+
+// GET /repos/:owner/:repo/issues
+$list = $issues->list('laravel', 'framework');
+
+foreach ($list as $issue) {
+    echo "[{$issue['state']}] {$issue['title']} - @{$issue['user']['login']}\n";
+}
+
+// Filter: cuma open issues, 10 per page
+$openIssues = $issues->list('laravel', 'framework', [
+    'state' => 'open',
+    'per_page' => 10,
+]);
+</code></pre>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Return</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>list(string $owner, string $repo, array $params)</code></td>
+                <td><code>GET /repos/:owner/:repo/issues</code></td>
+                <td><code>array</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>Parameter <code>$params</code> bisa diisi:</p>
+    <ul>
+        <li><code>state</code> - <code>open</code>, <code>closed</code>, <code>all</code></li>
+        <li><code>labels</code> - comma-separated label names</li>
+        <li><code>sort</code> - <code>created</code>, <code>updated</code>, <code>comments</code></li>
+        <li><code>direction</code> - <code>asc</code>, <code>desc</code></li>
+        <li><code>since</code> - ISO 8601 timestamp</li>
+        <li><code>per_page</code>, <code>page</code></li>
+    </ul>
+</section>
+
+<hr>
+
+<section id="error">
+    <h2>Error Handling</h2>
+    <p>
+        Semua error (HTTP 400+) dan error cURL dilempar sebagai
+        <code>Kryve\GithubApi\Exception\ApiException</code>.
+    </p>
+
+    <h3>ApiException</h3>
+    <pre><code>&lt;?php
+
+use Kryve\GithubApi\Client;
+use Kryve\GithubApi\Exception\ApiException;
+
+$client = new Client();
+
+try {
+    $client->get('/users/nonexistent_user_xyz');
+} catch (ApiException $e) {
+    echo "Message: " . $e->getMessage() . "\n";       // "Not Found"
+    echo "HTTP Code: " . $e->getCode() . "\n";        // 404
+    echo "Response Body:\n";
+    print_r($e->getResponseBody());                    // array dari GitHub
+
+    if ($e->getCode() === 404) {
+        // handle not found
+    } elseif ($e->getCode() === 401) {
+        // handle unauthorized
+    } elseif ($e->getCode() === 403) {
+        // rate limited? cek $e->getResponseBody()
+    }
+}
+</code></pre>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Return</th>
+                <th>Deskripsi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>getMessage()</code></td>
+                <td><code>string</code></td>
+                <td>Pesan error dari GitHub (misal "Not Found")</td>
+            </tr>
+            <tr>
+                <td><code>getCode()</code></td>
+                <td><code>int</code></td>
+                <td>HTTP status code (404, 401, 500, dll)</td>
+            </tr>
+            <tr>
+                <td><code>getResponseBody()</code></td>
+                <td><code>?array</code></td>
+                <td>Full response JSON dari GitHub (nullable)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning">
+        <strong>Error umum:</strong>
+        <ul>
+            <li><strong>401</strong> - token invalid / expired</li>
+            <li><strong>403</strong> - rate limit exceeded / forbidden</li>
+            <li><strong>404</strong> - resource gak ditemukan (user, repo, dll)</li>
+            <li><strong>422</strong> - validation error (parameter salah)</li>
+        </ul>
+    </div>
+</section>
+
+<hr>
+
+<section id="testing">
+    <h2>Testing</h2>
+    <p>Library ini pake <strong>PHPUnit</strong> untuk integration test (panggil API asli).</p>
+
+    <pre><code>composer test</code></pre>
+
+    <p>Atau langsung:</p>
+    <pre><code>vendor\bin\phpunit</code></pre>
+
+    <p>Contoh test yang ada:</p>
+    <pre><code>&lt;?php
+
+namespace Kryve\GithubApi\Tests;
+
+use PHPUnit\Framework\TestCase;
+use Kryve\GithubApi\Client;
+use Kryve\GithubApi\Exception\ApiException;
+
+class ClientTest extends TestCase
+{
+    private Client $client;
+
+    protected function setUp(): void
+    {
+        $token = getenv('GITHUB_TOKEN') ?: null;
+        $this->client = new Client($token);
+    }
+
+    public function testGetUserReturnsArray(): void
+    {
+        $result = $this->client->get('/users/kryvestudio');
+        $this->assertIsArray($result);
+        $this->assertArrayHasKey('login', $result);
+    }
+
+    public function testInvalidEndpointThrowsException(): void
+    {
+        $this->expectException(ApiException::class);
+        $this->client->get('/users/nonexistent_user_xyz_999');
+    }
+}
+</code></pre>
+</section>
+
+<hr>
+
+<section id="structure">
+    <h2>Project Structure</h2>
+    <pre><code>├── src/
+│   ├── Client.php              # HTTP client utama (cURL wrapper)
+│   ├── Api/
+│   │   ├── User.php            # GET /users/:username
+│   │   ├── Repos.php           # GET /orgs/:org/repos & /users/:username/repos
+│   │   └── Issues.php          # GET /repos/:owner/:repo/issues
+│   └── Exception/
+│       └── ApiException.php    # Custom exception
+├── tests/
+│   └── ClientTest.php          # PHPUnit integration tests
+├── docs/
+│   └── documentation.html      # Dokumentasi ini
+├── composer.json
+├── phpunit.xml
+├── .gitignore
+├── .env.example
+└── README.md</code></pre>
+
+    <div class="tip">
+        <strong>Best Practice:</strong> Mau nambah endpoint API baru?
+        Tinggal bikin file baru di <code>src/Api/</code>, isi class dengan
+        constructor terima <code>Client</code>, dan panggil
+        <code>$this-&gt;client-&gt;get('/path/baru')</code>.
+    </div>
+</section>
+
+<footer>
+    <p>Kryve Studio | MIT License</p>
+</footer>
+
+</main>
+
+</body>
+</html>
